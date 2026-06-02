@@ -1,0 +1,12 @@
+export { detectFace } from './services/detectFace';
+export { FaceTracker } from './services/trackFace';
+export { countFaces } from './services/detectMultipleFaces';
+export { preprocessFrame } from './preprocessing/preprocessFrame';
+export { resizeFrame } from './preprocessing/resizeFrame';
+export { normalizeFrame } from './preprocessing/normalizeFrame';
+export { cropFace } from './preprocessing/cropFace';
+export { alignFace } from './alignment/faceAlignment';
+export { validateFacePresence } from './validators/facePresenceValidator';
+export { validateFaceSize } from './validators/faceSizeValidator';
+export { validateFaceAngle } from './validators/faceAngleValidator';
+export type { BoundingBox, DetectionResult, AlignedFace } from './types/detection.types';

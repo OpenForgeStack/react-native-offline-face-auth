@@ -1,0 +1,30 @@
+export const LANDMARKS_CONFIG = {
+  modelPath: 'src/ai/models/landmarks/facemesh.tflite',
+  maxSizeBytes: 5 * 1024 * 1024,
+  inputShape: [1, 192, 192, 3] as const,
+  outputLandmarkCount: 468,
+  outputShape: [1, 468, 3] as const,
+};
+
+export const LANDMARK_INDICES = {
+  leftEyeTopOuter: 159,
+  leftEyeBottomOuter: 145,
+  leftEyeLeft: 33,
+  leftEyeRight: 133,
+  leftEyeTopInner: 158,
+  leftEyeBottomInner: 153,
+  rightEyeTopOuter: 386,
+  rightEyeBottomOuter: 374,
+  rightEyeLeft: 362,
+  rightEyeRight: 263,
+  rightEyeTopInner: 385,
+  rightEyeBottomInner: 380,
+  mouthTop: 13,
+  mouthBottom: 14,
+  mouthLeft: 61,
+  mouthRight: 291,
+  noseTip: 1,
+  chin: 152,
+  leftTemple: 234,
+  rightTemple: 454,
+};
