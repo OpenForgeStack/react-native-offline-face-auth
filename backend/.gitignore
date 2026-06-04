@@ -1,3 +1,20 @@
+# Node
 node_modules/
+
+# Environment
 .env
-dist/
+*.env
+
+# Android
+.gradle/
+build/
+android/.gradle/
+android/build/
+mobile-app/android/.gradle/
+mobile-app/android/build/
+
+# React Native
+mobile-app/node_modules/
+
+# Logs
+*.log
