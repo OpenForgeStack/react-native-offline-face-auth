@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL =
-  "http://10.1.46.228:5000/api/attendance";
+  "http://192.168.0.4:5000/api/attendance";
 
 export const markAttendance = async () => {
 
