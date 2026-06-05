@@ -75,10 +75,12 @@ export default function FaceVerificationScreen({ onBack, selectedFace }: FaceVer
   const drawFaceBounds = (face?: Face) => {
     if (face) {
       const { width, height, x, y } = face.bounds;
-      aFaceW.value = width;
-      aFaceH.value = height;
-      aFaceX.value = x;
-      aFaceY.value = y;
+      const padX = width * 0.3;
+      const padY = height * 0.3;
+      aFaceW.value = width + 2 * padX;
+      aFaceH.value = height + 2 * padY;
+      aFaceX.value = x - padX;
+      aFaceY.value = y - padY;
     } else {
       aFaceW.value = aFaceH.value = aFaceX.value = aFaceY.value = 0;
     }

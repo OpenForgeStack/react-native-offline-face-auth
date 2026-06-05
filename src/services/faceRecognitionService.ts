@@ -2,7 +2,6 @@ import * as tf from '@tensorflow/tfjs';
 import { decodeJpeg } from '@tensorflow/tfjs-react-native';
 import { Asset } from 'expo-asset';
 import * as ort from 'onnxruntime-react-native';
-import { applyPreprocessing, getLightingCondition } from '../faceRecognition/preprocessingPipeline';
 
 const modelPath = '../models/arcfaceresnet100-11-int8.onnx';
 
@@ -99,74 +98,34 @@ class FaceRecognitionService {
 
   async generateFaceEmbedding(base64: string, options?: { normalize?: boolean }): Promise<number[] | null> {
     try {
-      // Ensure model is loaded
       const session = await this.loadModel();
       if (!session) {
         console.error('ArcFace ONNX model not loaded');
         return null;
       }
 
-      //console.log('base64', base64);
-
-      // 1. Decode and Resize Image Tensor using TF.js
       const imageBuffer = Buffer.from(base64, 'base64');
-      const { rgbPixels, width, height } = tf.tidy(() => {
+      const { rgbPixels } = tf.tidy(() => {
         const decoded = decodeJpeg(imageBuffer);
         const resized = decoded.resizeBilinear([this.INPUT_SIZE, this.INPUT_SIZE]);
         const data = resized.dataSync();
-        return { rgbPixels: Array.from(data), width: this.INPUT_SIZE, height: this.INPUT_SIZE };
+        return { rgbPixels: Array.from(data) };
       });
 
-      const gray = new Uint8Array(width * height);
-      for (let i = 0; i < width * height; i++) {
-        const r = rgbPixels[i * 3];
-        const g = rgbPixels[i * 3 + 1];
-        const b = rgbPixels[i * 3 + 2];
-        gray[i] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      const pixelCount = this.INPUT_SIZE * this.INPUT_SIZE;
+      const input = new Float32Array(3 * pixelCount);
+      for (let i = 0; i < pixelCount; i++) {
+        input[i] = (rgbPixels[i * 3] / 255.0 - 0.5) / 0.5;
+        input[i + pixelCount] = (rgbPixels[i * 3 + 1] / 255.0 - 0.5) / 0.5;
+        input[i + 2 * pixelCount] = (rgbPixels[i * 3 + 2] / 255.0 - 0.5) / 0.5;
       }
 
-      const lightingCondition = getLightingCondition(gray);
-      console.log(`Lighting condition: ${lightingCondition}`);
-
-      const useAdaptivePreprocessing = lightingCondition !== 'normal';
-
-      const preprocessed = applyPreprocessing(
-        gray,
-        this.INPUT_SIZE,
-        this.INPUT_SIZE,
-        { histogramEqualization: true, brightnessNormalization: true, contrastEnhancement: useAdaptivePreprocessing }
-      );
-
-      const equalizedGray = new Uint8Array(preprocessed.length);
-      for (let i = 0; i < preprocessed.length; i++) {
-        equalizedGray[i] = Math.round(Math.max(0, Math.min(255, preprocessed[i])));
-      }
-
-      const input = new Float32Array(3 * this.INPUT_SIZE * this.INPUT_SIZE);
-      for (let i = 0; i < this.INPUT_SIZE * this.INPUT_SIZE; i++) {
-        const val = (rgbPixels[i * 3] + rgbPixels[i * 3 + 1] + rgbPixels[i * 3 + 2]) / 3;
-        const adjusted = val * 0.5 + equalizedGray[i] * 0.5;
-        input[i] = adjusted;
-        input[i + this.INPUT_SIZE * this.INPUT_SIZE] = adjusted;
-        input[i + 2 * this.INPUT_SIZE * this.INPUT_SIZE] = adjusted;
-      }
-
-      // console.log('input', input);
-
-      // Create tensor in NCHW format [1, 3, 112, 112]
       const tensor = new ort.Tensor('float32', input, [1, 3, this.INPUT_SIZE, this.INPUT_SIZE]);
-
-      // Run inference
       const output = await session.run({ [session.inputNames[0]]: tensor });
       const raw = output[session.outputNames[0]].data as Float32Array;
 
-      // Clean up tensors
-      tf.dispose([]);
-      // ONNX Tensors don't have a dispose method in onnxruntime-react-native's public API
-
-      // L2 Normalize the output embedding
       const norm = Math.sqrt(Array.from(raw).reduce((sum, x) => sum + x * x, 0));
-      if (norm === 0) return Array.from(raw); // Avoid division by zero
+      if (norm === 0) return Array.from(raw);
       const normalized = Array.from(raw).map(x => x / norm);
 
       return normalized;

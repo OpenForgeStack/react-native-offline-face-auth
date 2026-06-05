@@ -32,42 +32,43 @@ class PhotoProcessingService {
     const { bounds, previewDimensions, isMirrored = false, finalSize = 112 } = options;
     const { width: photoWidth, height: photoHeight } = photoDimensions;
 
-    console.log('Processing face photo with enhanced logic...');
+    console.log('Processing face photo...');
     console.log('Photo dimensions:', { photoWidth, photoHeight });
     console.log('Preview dimensions:', previewDimensions);
     console.log('Original face bounds:', bounds);
 
-    // Step 1: Resize photo to screen/preview size for consistent coordinate mapping
-    const resized = await manipulateAsync(
-      photoPath,
-      [{ resize: { width: previewDimensions.width, height: previewDimensions.height } }],
-      {
-        compress: 1,
-        format: SaveFormat.JPEG,
-      }
-    );
+    // Scale face bounds from preview (screen) coordinates to photo coordinates
+    const scaleX = photoWidth / previewDimensions.width;
+    const scaleY = photoHeight / previewDimensions.height;
 
-    console.log('Step 1 - Resized to screen size:', resized.uri);
+    const scaledBounds = {
+      x: bounds.x * scaleX,
+      y: bounds.y * scaleY,
+      width: bounds.width * scaleX,
+      height: bounds.height * scaleY,
+    };
 
-    // Step 2: Calculate crop region using the original bounds (now coordinates match)
-    const cropRegion = this.calculateCropRegion(bounds, previewDimensions);
+    console.log('Scaled face bounds:', scaledBounds);
 
-    console.log('Step 2 - Calculated crop region:', cropRegion);
+    // Calculate crop region in photo coordinate space
+    const cropRegion = this.calculateCropRegion(scaledBounds, photoDimensions);
 
-    // Step 3: Crop the face and resize to final size
+    console.log('Calculated crop region:', cropRegion);
+
+    // Crop and resize directly from original photo (no intermediate distorting resize)
     const actions: any[] = [{ crop: cropRegion }, { resize: { width: finalSize, height: finalSize } }];
 
     if (isMirrored) {
       actions.push({ flip: FlipType.Horizontal });
     }
 
-    const manipResult = await manipulateAsync(resized.uri, actions, {
+    const manipResult = await manipulateAsync(photoPath, actions, {
       base64: true,
       compress: 1,
       format: SaveFormat.JPEG,
     });
 
-    console.log('Step 3 - Final processing complete');
+    console.log('Final processing complete');
 
     if (!manipResult.base64) {
       throw new Error('Failed to generate base64');
@@ -89,7 +90,7 @@ class PhotoProcessingService {
     const { width: imgWidth, height: imgHeight } = dimensions;
 
     // Add padding to the bounds
-    const padding = 0.2; // 20% padding on each side
+    const padding = 0.3; // 30% padding on each side
     const paddingX = bounds.width * padding;
     const paddingY = bounds.height * padding;
 
