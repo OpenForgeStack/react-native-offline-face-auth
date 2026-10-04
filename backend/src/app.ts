@@ -4,8 +4,15 @@ import helmet from "helmet";
 
 const app = express();
 
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(express.json());
 
 app.get("/", (_req, res) => {
